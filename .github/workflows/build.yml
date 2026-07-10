@@ -8,22 +8,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  Android:
+  android:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@master
+        uses: krdlab/setup-haxe@v1
         with:
           haxe-version: 4.3.4
+
+      - name: Cache haxelib
+        uses: actions/cache@v4
+        with:
+          path: ~/haxelib
+          key: ${{ runner.os }}-haxelib-${{ hashFiles('hmm.json') }}
+          restore-keys: |
+            ${{ runner.os }}-haxelib-
 
       - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
           haxelib install hmm --quiet
           haxelib run hmm install --quiet
+
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
 
       - name: Configure Android
         run: |
@@ -33,11 +44,11 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Compile
-        run: haxelib run lime build android
+        run: haxelib run lime build android -release
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
-          name: FNF-BFYoutubers (Android)
+          name: FNF-BFYoutubers-Android
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
